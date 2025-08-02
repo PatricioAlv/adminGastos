@@ -27,4 +27,3 @@ jobs:
           channelId: live
           projectId: admingastos-23a64
           entryPoint: .
-          targets: hosting,firestore
