@@ -115,7 +115,7 @@ export default function AuthPage() {
           </div>
         </motion.div>
 
-        {/* Características */}
+        {/* Tutorial instalación PWA */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -123,23 +123,24 @@ export default function AuthPage() {
           className="mt-8 grid grid-cols-1 gap-4 text-center"
         >
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white">
-            <div className="text-2xl mb-2">📱</div>
-            <h3 className="font-semibold mb-1">Mobile First</h3>
-            <p className="text-sm text-primary-100">Diseñado para tu smartphone</p>
+            <div className="text-2xl mb-2">🍏</div>
+            <h3 className="font-semibold mb-1">¿Cómo instalar en iOS?</h3>
+            <ol className="text-sm text-primary-100 list-decimal list-inside text-left mx-auto max-w-xs">
+              <li>Abre esta página en <b>Safari</b> en tu iPhone o iPad.</li>
+              <li>Toca el botón <b>Compartir</b> <span className="inline-block align-middle">&#x1F5D2;&#xFE0F;</span> (cuadro con flecha hacia arriba).</li>
+              <li>Desliza hacia abajo y selecciona <b>Agregar a pantalla de inicio</b>.</li>
+              <li>Confirma el nombre y toca <b>Agregar</b>.</li>
+            </ol>
           </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white">
-              <div className="text-xl mb-1">🔒</div>
-              <h4 className="font-medium text-sm mb-1">Seguro</h4>
-              <p className="text-xs text-primary-100">Datos protegidos</p>
-            </div>
-            
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white">
-              <div className="text-xl mb-1">📊</div>
-              <h4 className="font-medium text-sm mb-1">Inteligente</h4>
-              <p className="text-xs text-primary-100">Análisis automático</p>
-            </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-white">
+            <div className="text-2xl mb-2">🤖</div>
+            <h3 className="font-semibold mb-1">¿Cómo instalar en Android?</h3>
+            <ol className="text-sm text-primary-100 list-decimal list-inside text-left mx-auto max-w-xs">
+              <li>Abre esta página en <b>Chrome</b> en tu dispositivo Android.</li>
+              <li>Toca el ícono de <b>más opciones</b> <span className="inline-block align-middle">&#x22EE;</span> (tres puntos arriba a la derecha).</li>
+              <li>Selecciona <b>Instalar app</b> o <b>Agregar a pantalla principal</b>.</li>
+              <li>Confirma y la app aparecerá en tu pantalla de inicio.</li>
+            </ol>
           </div>
         </motion.div>
       </motion.div>

@@ -26,6 +26,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="format-detection" content="telephone=no" />
+        <link rel="icon" href="/icon-512.png" sizes="any" />
+        <link rel="apple-touch-icon" href="/icon-512.png" />
       </head>
       <body className={`${inter.className} bg-gray-50 min-h-screen`}>
         <AuthProvider>
