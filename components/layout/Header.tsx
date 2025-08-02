@@ -17,7 +17,7 @@ export function Header() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">AdminGastos</h1>
+            <h1 className="text-xl font-bold text-gray-900">AhorrApp</h1>
             <p className="text-sm text-gray-600 capitalize">{currentMonth}</p>
             {user && (
               <p className="text-xs text-primary-600">¡Hola, {user.name}!</p>

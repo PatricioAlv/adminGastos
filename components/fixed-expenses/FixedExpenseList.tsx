@@ -8,11 +8,13 @@ import {
   CreditCardIcon,
   TrashIcon,
   EyeSlashIcon,
-  EyeIcon
+  EyeIcon,
+  PencilIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { fixedExpenseService } from '@/lib/firestore'
 import { FixedExpense } from '@/types'
+import { EditFixedExpenseForm } from './EditFixedExpenseForm'
 import toast from 'react-hot-toast'
 
 interface FixedExpenseListProps {
@@ -24,6 +26,7 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
   const { user } = useAuth()
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [editingExpense, setEditingExpense] = useState<FixedExpense | null>(null)
 
   useEffect(() => {
     const loadFixedExpenses = async () => {
@@ -43,6 +46,20 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
 
     loadFixedExpenses()
   }, [user, refreshKey])
+
+  const handleExpenseUpdated = () => {
+    // Recargar la lista de gastos fijos
+    if (user) {
+      fixedExpenseService.getByUser(user.id).then(setFixedExpenses)
+    }
+  }
+
+  const handleExpenseDeleted = () => {
+    // Recargar la lista de gastos fijos
+    if (user) {
+      fixedExpenseService.getByUser(user.id).then(setFixedExpenses)
+    }
+  }
 
   const handleToggleActive = async (expense: FixedExpense) => {
     try {
@@ -229,6 +246,14 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
                   
                   <div className="flex items-center space-x-1">
                     <button
+                      onClick={() => setEditingExpense(expense)}
+                      className="p-2 hover:bg-blue-50 rounded-full transition-colors btn-touch"
+                      title="Editar gasto"
+                    >
+                      <PencilIcon className="h-4 w-4 text-blue-600" />
+                    </button>
+                    
+                    <button
                       onClick={() => handleToggleActive(expense)}
                       className="p-2 hover:bg-gray-100 rounded-full transition-colors btn-touch"
                       title={expense.isActive ? 'Pausar gasto' : 'Activar gasto'}
@@ -275,6 +300,16 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
             {fixedExpenses.filter(expense => expense.isActive).length} gastos activos
           </p>
         </motion.div>
+      )}
+
+      {/* Modal de edición */}
+      {editingExpense && (
+        <EditFixedExpenseForm
+          expense={editingExpense}
+          onClose={() => setEditingExpense(null)}
+          onExpenseUpdated={handleExpenseUpdated}
+          onExpenseDeleted={handleExpenseDeleted}
+        />
       )}
     </div>
   )

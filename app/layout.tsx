@@ -7,7 +7,7 @@ import { AuthProvider } from '@/components/providers/AuthProvider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'AdminGastos - Control de Gastos Personal',
+  title: 'AhorrApp - Control de Gastos Personal',
   description: 'Aplicación para llevar control de gastos mensuales, categorías y gastos fijos',
   manifest: '/manifest.json',
   themeColor: '#0ea5e9',

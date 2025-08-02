@@ -1,4 +1,4 @@
-# AdminGastos 💰
+# AhorrApp 💰
 
 Una aplicación web moderna y responsive para el control de gastos personales, optimizada especialmente para dispositivos móviles.
 

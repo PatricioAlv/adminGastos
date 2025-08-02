@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { MagnifyingGlassIcon, FunnelIcon, CalendarIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, FunnelIcon, CalendarIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { expenseService } from '@/lib/firestore'
 import { LocalExpense } from '@/types'
+import { EditExpenseForm } from './EditExpenseForm'
 
 export function ExpenseList({ refreshKey }: { refreshKey?: number }) {
   const { user } = useAuth()
@@ -13,6 +14,7 @@ export function ExpenseList({ refreshKey }: { refreshKey?: number }) {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [editingExpense, setEditingExpense] = useState<LocalExpense | null>(null)
 
   useEffect(() => {
     const loadExpenses = async () => {
@@ -31,6 +33,33 @@ export function ExpenseList({ refreshKey }: { refreshKey?: number }) {
 
     loadExpenses()
   }, [user, refreshKey])
+
+  const handleExpenseUpdated = () => {
+    // Recargar la lista de gastos
+    if (user) {
+      expenseService.getByUser(user.id, 100).then(setExpenses)
+    }
+  }
+
+  const handleExpenseDeleted = () => {
+    // Recargar la lista de gastos
+    if (user) {
+      expenseService.getByUser(user.id, 100).then(setExpenses)
+    }
+  }
+
+  const handleDelete = async (expense: LocalExpense) => {
+    if (!confirm(`¿Eliminar "${expense.descripcion}"?`)) return
+    
+    try {
+      await expenseService.delete(expense.id)
+      setExpenses(prev => prev.filter(exp => exp.id !== expense.id))
+      // toast.success('Gasto eliminado') // Descomenta si tienes toast configurado
+    } catch (error) {
+      console.error('Error al eliminar gasto:', error)
+      // toast.error('Error al eliminar el gasto') // Descomenta si tienes toast configurado
+    }
+  }
 
   // Mapear categorías a emojis y colores
   const categoryEmojis: { [key: string]: string } = {
@@ -157,9 +186,9 @@ export function ExpenseList({ refreshKey }: { refreshKey?: number }) {
               className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 flex-1">
                   <div className="text-2xl">{categoryEmojis[gasto.categoria] || '📦'}</div>
-                  <div>
+                  <div className="flex-1">
                     <h3 className="font-semibold text-gray-900">{gasto.descripcion}</h3>
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                       <CalendarIcon className="h-4 w-4" />
@@ -167,13 +196,32 @@ export function ExpenseList({ refreshKey }: { refreshKey?: number }) {
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-gray-900">${gasto.monto.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
-                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                    categorias.find(c => c.id === gasto.categoria)?.color || 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {categorias.find(c => c.id === gasto.categoria)?.nombre}
-                  </span>
+                <div className="flex items-center space-x-3">
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-gray-900">${gasto.monto.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
+                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                      categorias.find(c => c.id === gasto.categoria)?.color || 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {categorias.find(c => c.id === gasto.categoria)?.nombre}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => setEditingExpense(gasto)}
+                      className="p-2 hover:bg-blue-50 rounded-full transition-colors btn-touch"
+                      title="Editar gasto"
+                    >
+                      <PencilIcon className="h-4 w-4 text-blue-600" />
+                    </button>
+                    
+                    <button
+                      onClick={() => handleDelete(gasto)}
+                      className="p-2 hover:bg-red-50 rounded-full transition-colors btn-touch"
+                      title="Eliminar gasto"
+                    >
+                      <TrashIcon className="h-4 w-4 text-red-500" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -195,6 +243,16 @@ export function ExpenseList({ refreshKey }: { refreshKey?: number }) {
             </span>
           </div>
         </motion.div>
+      )}
+
+      {/* Modal de edición */}
+      {editingExpense && (
+        <EditExpenseForm
+          expense={editingExpense}
+          onClose={() => setEditingExpense(null)}
+          onExpenseUpdated={handleExpenseUpdated}
+          onExpenseDeleted={handleExpenseDeleted}
+        />
       )}
     </div>
   )

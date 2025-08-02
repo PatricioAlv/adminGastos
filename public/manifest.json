@@ -1,6 +1,6 @@
 {
-  "name": "AdminGastos - Control de Gastos",
-  "short_name": "AdminGastos",
+  "name": "AhorrApp - Control de Gastos",
+  "short_name": "AhorrApp",
   "description": "Aplicación para llevar control de gastos mensuales y presupuesto personal",
   "start_url": "/",
   "display": "standalone",
