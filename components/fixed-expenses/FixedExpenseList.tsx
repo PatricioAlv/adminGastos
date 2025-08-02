@@ -6,7 +6,6 @@ import {
   PlusIcon, 
   CalendarIcon, 
   CreditCardIcon,
-  PencilIcon,
   TrashIcon,
   EyeSlashIcon,
   EyeIcon
@@ -32,13 +31,11 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
       
       try {
         setIsLoading(true)
-        console.log('Cargando gastos fijos para usuario:', user.id)
         const expenses = await fixedExpenseService.getByUser(user.id)
-        console.log('Gastos fijos cargados:', expenses)
         setFixedExpenses(expenses)
       } catch (error) {
         console.error('Error al cargar gastos fijos:', error)
-        toast.error('Error al cargar gastos fijos: ' + (error instanceof Error ? error.message : 'Error desconocido'))
+        toast.error('Error al cargar gastos fijos')
       } finally {
         setIsLoading(false)
       }

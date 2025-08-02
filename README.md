@@ -4,28 +4,36 @@ Una aplicación web moderna y responsive para el control de gastos personales, o
 
 ## 🚀 Características Principales
 
-### ✅ Implementadas
+### ✅ Completamente Implementadas
 - **Diseño Mobile-First**: Interfaz optimizada para smartphones y tablets
-- **Dashboard Interactivo**: Resumen visual de gastos mensuales
-- **Gestión de Gastos**: Agregar, editar y categorizar gastos
-- **Categorías Personalizadas**: Sistema de categorías con emojis y colores
-- **Búsqueda y Filtros**: Encontrar gastos específicos fácilmente
+- **Autenticación Completa**: Google Authentication con Firebase Auth
+- **Dashboard Interactivo**: Resumen visual de gastos mensuales con estadísticas
+- **Gestión de Gastos Variables**: Agregar, categorizar y gestionar gastos diarios
+- **Gestión de Gastos Fijos**: Sistema completo de gastos recurrentes (alquiler, servicios, etc.)
+- **Configuración Personalizable**: 
+  - Presupuesto mensual configurable
+  - Preferencias de notificaciones
+  - Temas y personalización visual
+  - Configuración de moneda y formato de fecha
+- **Categorías con Emojis**: Sistema visual de categorización
+- **Base de Datos en Tiempo Real**: Firestore con sincronización automática
 - **Navegación Táctil**: Botones optimizados para touch (44px mínimo)
 - **Animaciones Suaves**: Transiciones fluidas con Framer Motion
 - **PWA Ready**: Manifiesto configurado para instalación como app
+- **Reglas de Seguridad**: Acceso controlado por usuario autenticado
 
-### 🔄 En Desarrollo
-- **Autenticación Completa**: Sistema de login y registro
-- **Base de Datos**: Integración con Prisma y base de datos
-- **Gastos Fijos**: Gestión de gastos recurrentes
-- **Gráficos y Reportes**: Análisis visual de gastos
-- **Presupuestos**: Sistema de límites y alertas
-- **Sincronización**: Backup en la nube
+### 🔄 Próximas Mejoras
+- **Gráficos y Reportes**: Análisis visual detallado de gastos
+- **Notificaciones Push**: Alertas para vencimientos y presupuestos
+- **Exportación de Datos**: Informes en PDF/Excel
+- **Metas de Ahorro**: Sistema de objetivos financieros
 
 ## 🛠️ Tecnologías Utilizadas
 
 - **Framework**: Next.js 14 (App Router)
 - **Lenguaje**: TypeScript
+- **Base de Datos**: Firebase Firestore
+- **Autenticación**: Firebase Auth
 - **Estilos**: Tailwind CSS
 - **Animaciones**: Framer Motion
 - **Iconos**: Heroicons

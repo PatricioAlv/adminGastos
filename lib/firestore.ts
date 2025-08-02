@@ -150,28 +150,17 @@ export const fixedExpenseService = {
 
   async getByUser(userId: string): Promise<FixedExpense[]> {
     try {
-      console.log('Iniciando consulta de gastos fijos para usuario:', userId)
-      
-      // Consulta simple por usuario
       const q = query(
         collection(db, 'fixedExpenses'),
         where('userId', '==', userId)
       )
       const querySnapshot = await getDocs(q)
       
-      console.log('Documentos encontrados:', querySnapshot.size)
+      const expenses = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as FixedExpense[]
       
-      // Mapear documentos
-      const expenses = querySnapshot.docs.map(doc => {
-        const data = doc.data()
-        console.log('Documento:', { id: doc.id, ...data })
-        return {
-          id: doc.id,
-          ...data,
-        }
-      }) as FixedExpense[]
-      
-      // Ordenar por fechaVencimiento
       return expenses.sort((a, b) => a.fechaVencimiento - b.fechaVencimiento)
     } catch (error) {
       console.error('Error getting fixed expenses:', error)
