@@ -16,7 +16,7 @@ import {
   QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { Expense, FixedExpense, Budget, User, LocalExpense } from '@/types'
+import { Expense, FixedExpense, Budget, User, LocalExpense, UserSettings } from '@/types'
 
 // Utilidades para convertir datos de Firestore
 const convertTimestamp = (timestamp: any): Date => {
@@ -149,17 +149,34 @@ export const fixedExpenseService = {
   },
 
   async getByUser(userId: string): Promise<FixedExpense[]> {
-    const q = query(
-      collection(db, 'fixedExpenses'),
-      where('userId', '==', userId),
-      where('isActive', '==', true),
-      orderBy('fechaVencimiento', 'asc')
-    )
-    const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as FixedExpense[]
+    try {
+      console.log('Iniciando consulta de gastos fijos para usuario:', userId)
+      
+      // Consulta simple por usuario
+      const q = query(
+        collection(db, 'fixedExpenses'),
+        where('userId', '==', userId)
+      )
+      const querySnapshot = await getDocs(q)
+      
+      console.log('Documentos encontrados:', querySnapshot.size)
+      
+      // Mapear documentos
+      const expenses = querySnapshot.docs.map(doc => {
+        const data = doc.data()
+        console.log('Documento:', { id: doc.id, ...data })
+        return {
+          id: doc.id,
+          ...data,
+        }
+      }) as FixedExpense[]
+      
+      // Ordenar por fechaVencimiento
+      return expenses.sort((a, b) => a.fechaVencimiento - b.fechaVencimiento)
+    } catch (error) {
+      console.error('Error getting fixed expenses:', error)
+      throw error
+    }
   },
 
   async update(id: string, data: Partial<FixedExpense>) {
@@ -170,10 +187,7 @@ export const fixedExpenseService = {
   },
 
   async delete(id: string) {
-    await updateDoc(doc(db, 'fixedExpenses', id), {
-      isActive: false,
-      updatedAt: Timestamp.now(),
-    })
+    await deleteDoc(doc(db, 'fixedExpenses', id))
   },
 }
 
@@ -227,5 +241,95 @@ export const budgetService = {
       return { id: doc.id, ...doc.data() } as Budget
     }
     return null
+  },
+}
+
+// Servicios para configuración del usuario
+export const userSettingsService = {
+  async get(userId: string): Promise<UserSettings | null> {
+    try {
+      const q = query(
+        collection(db, 'userSettings'),
+        where('userId', '==', userId)
+      )
+      const querySnapshot = await getDocs(q)
+      
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0]
+        return { id: doc.id, ...doc.data() } as UserSettings
+      }
+      return null
+    } catch (error) {
+      console.error('Error getting user settings:', error)
+      throw error
+    }
+  },
+
+  async createOrUpdate(userId: string, settings: Partial<Omit<UserSettings, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>): Promise<string> {
+    try {
+      // Buscar configuración existente
+      const existing = await this.get(userId)
+      
+      if (existing) {
+        // Actualizar existente
+        await updateDoc(doc(db, 'userSettings', existing.id), {
+          ...settings,
+          updatedAt: Timestamp.now(),
+        })
+        return existing.id
+      } else {
+        // Crear nueva configuración con valores por defecto
+        const now = Timestamp.now()
+        const defaultSettings: Omit<UserSettings, 'id'> = {
+          userId,
+          monthlyBudget: 50000, // Presupuesto por defecto
+          enableNotifications: true,
+          notifyBeforeDueDate: 3, // 3 días antes
+          notifyBudgetPercentage: 80, // avisar al 80% del presupuesto
+          currency: 'ARS',
+          dateFormat: 'DD/MM/YYYY',
+          theme: 'auto',
+          defaultExpenseCategory: 'otros',
+          defaultFixedExpenseCategory: 'hogar',
+          enableAutoBackup: false,
+          backupFrequency: 'weekly',
+          monthStartDay: 1,
+          createdAt: now,
+          updatedAt: now,
+          ...settings, // Sobrescribir con settings proporcionados
+        }
+        
+        const docRef = await addDoc(collection(db, 'userSettings'), defaultSettings)
+        return docRef.id
+      }
+    } catch (error) {
+      console.error('Error creating/updating user settings:', error)
+      throw error
+    }
+  },
+
+  async updateBudget(userId: string, monthlyBudget: number): Promise<void> {
+    try {
+      await this.createOrUpdate(userId, { monthlyBudget })
+    } catch (error) {
+      console.error('Error updating budget:', error)
+      throw error
+    }
+  },
+
+  async getOrCreateDefault(userId: string): Promise<UserSettings> {
+    try {
+      let settings = await this.get(userId)
+      
+      if (!settings) {
+        const id = await this.createOrUpdate(userId, {})
+        settings = await this.get(userId)
+      }
+      
+      return settings!
+    } catch (error) {
+      console.error('Error getting or creating default settings:', error)
+      throw error
+    }
   },
 }

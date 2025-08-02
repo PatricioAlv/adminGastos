@@ -52,6 +52,31 @@ export interface Budget {
   updatedAt: Timestamp
 }
 
+export interface UserSettings {
+  id: string
+  userId: string
+  // Presupuesto mensual
+  monthlyBudget: number
+  // Configuraciones de notificaciones
+  enableNotifications: boolean
+  notifyBeforeDueDate: number // días antes del vencimiento
+  notifyBudgetPercentage: number // porcentaje del presupuesto para alertar
+  // Configuraciones de visualización
+  currency: string // 'ARS', 'USD', etc.
+  dateFormat: string // 'DD/MM/YYYY', 'MM/DD/YYYY'
+  theme: 'light' | 'dark' | 'auto'
+  // Configuraciones de categorías por defecto
+  defaultExpenseCategory: string
+  defaultFixedExpenseCategory: string
+  // Configuraciones de backup
+  enableAutoBackup: boolean
+  backupFrequency: 'daily' | 'weekly' | 'monthly'
+  // Configuración de inicio de mes (para países donde el mes fiscal no coincide)
+  monthStartDay: number // día del mes en que inicia el período (1-31)
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+
 // Tipos para la aplicación local
 export interface LocalExpense {
   id: string

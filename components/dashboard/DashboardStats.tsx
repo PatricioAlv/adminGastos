@@ -4,16 +4,18 @@ import { useState, useEffect } from 'react'
 import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, CreditCardIcon, ChartBarIcon } from '@heroicons/react/24/outline'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { expenseService } from '@/lib/firestore'
-import { LocalExpense } from '@/types'
+import { expenseService, fixedExpenseService, userSettingsService } from '@/lib/firestore'
+import { LocalExpense, FixedExpense, UserSettings } from '@/types'
 
 export function DashboardStats({ refreshKey }: { refreshKey?: number }) {
   const { user } = useAuth()
   const [expenses, setExpenses] = useState<LocalExpense[]>([])
+  const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([])
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   
-  // Valores por defecto para el presupuesto (se puede hacer configurable más adelante)
-  const presupuestoMensual = 5000.00
+  // Usar el presupuesto de la configuración del usuario, con fallback a valor por defecto
+  const presupuestoMensual = userSettings?.monthlyBudget || 50000
 
   useEffect(() => {
     const loadExpenses = async () => {
@@ -22,7 +24,11 @@ export function DashboardStats({ refreshKey }: { refreshKey?: number }) {
       try {
         setIsLoading(true)
         
-        // Usar getByUser que funciona con los índices existentes
+        // Cargar configuración del usuario
+        const settings = await userSettingsService.getOrCreateDefault(user.id)
+        setUserSettings(settings)
+        
+        // Cargar gastos variables
         const allExpenses = await expenseService.getByUser(user.id, 100)
         
         // Filtrar por mes actual en el cliente
@@ -37,6 +43,10 @@ export function DashboardStats({ refreshKey }: { refreshKey?: number }) {
         })
         
         setExpenses(currentMonthExpenses)
+
+        // Cargar gastos fijos
+        const activeFixedExpenses = await fixedExpenseService.getByUser(user.id)
+        setFixedExpenses(activeFixedExpenses.filter(expense => expense.isActive))
       } catch (error) {
         console.error('Error al cargar gastos del dashboard:', error)
       } finally {
@@ -49,8 +59,10 @@ export function DashboardStats({ refreshKey }: { refreshKey?: number }) {
 
   // Calcular estadísticas
   const gastosEsteMes = expenses.reduce((total, expense) => total + expense.monto, 0)
-  const porcentajeGastado = (gastosEsteMes / presupuestoMensual) * 100
-  const disponible = presupuestoMensual - gastosEsteMes
+  const gastosFijos = fixedExpenses.reduce((total, expense) => total + expense.monto, 0)
+  const gastosTotales = gastosEsteMes + gastosFijos
+  const porcentajeGastado = (gastosTotales / presupuestoMensual) * 100
+  const disponible = presupuestoMensual - gastosTotales
 
   // Obtener gastos recientes (últimos 3)
   const gastosRecientes = expenses
@@ -132,7 +144,7 @@ export function DashboardStats({ refreshKey }: { refreshKey?: number }) {
         <h2 className="text-lg font-semibold mb-2">Resumen del mes</h2>
         <div className="flex justify-between items-end">
           <div>
-            <p className="text-3xl font-bold">${gastosEsteMes.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
+            <p className="text-3xl font-bold">${gastosTotales.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
             <p className="text-primary-100 text-sm">de ${presupuestoMensual.toLocaleString('es-ES')} presupuestado</p>
           </div>
           <div className="text-right">
@@ -181,7 +193,7 @@ export function DashboardStats({ refreshKey }: { refreshKey?: number }) {
             <CreditCardIcon className="h-5 w-5 text-warning-500" />
             <span className="text-xs text-gray-500">Mensuales</span>
           </div>
-          <p className="text-xl font-bold text-gray-900">$0.00</p>
+          <p className="text-xl font-bold text-gray-900">${gastosFijos.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
           <p className="text-sm text-gray-600">Gastos fijos</p>
         </motion.div>
 
