@@ -8,6 +8,9 @@ import { ExpenseList } from '@/components/expenses/ExpenseList'
 import { DashboardStats } from '@/components/dashboard/DashboardStats'
 import { FixedExpenseList } from '@/components/fixed-expenses/FixedExpenseList'
 import { FixedExpenseForm } from '@/components/fixed-expenses/FixedExpenseForm'
+
+// Forzar renderizado dinámico para evitar problemas con Firebase en build
+export const dynamic = 'force-dynamic'
 import { Settings } from '@/components/settings/Settings'
 import { BottomNavigation } from '@/components/navigation/BottomNavigation'
 import { Header } from '@/components/layout/Header'

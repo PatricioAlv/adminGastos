@@ -4,6 +4,9 @@ import { motion } from 'framer-motion'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { useState } from 'react'
 
+// Forzar renderizado dinámico para evitar problemas con Firebase en build
+export const dynamic = 'force-dynamic'
+
 export default function AuthPage() {
   const { login, isLoading } = useAuth()
   const [isSigningIn, setIsSigningIn] = useState(false)

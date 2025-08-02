@@ -32,6 +32,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    // Solo configurar el listener si auth está disponible
+    if (!auth) {
+      setIsLoading(false)
+      return
+    }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         // Usuario autenticado
@@ -66,6 +71,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = async () => {
+    if (!auth || !googleProvider) {
+      toast.error('Firebase no está configurado')
+      return
+    }
+    
     try {
       setIsLoading(true)
       const result = await signInWithPopup(auth, googleProvider)
@@ -87,6 +97,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = async () => {
+    if (!auth) {
+      toast.error('Firebase no está configurado')
+      return
+    }
+    
     try {
       await signOut(auth)
       toast.success('Sesión cerrada correctamente')

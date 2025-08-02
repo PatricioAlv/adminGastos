@@ -13,21 +13,29 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 }
 
-// Inicializar Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+// Verificar si todas las variables de entorno están disponibles
+const isConfigComplete = Object.values(firebaseConfig).every(value => value !== undefined)
 
-// Inicializar servicios
-export const auth = getAuth(app)
-export const db = getFirestore(app)
+// Inicializar Firebase solo si la configuración está completa
+let app: any = null
+if (isConfigComplete) {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+}
+
+// Inicializar servicios solo si la app está disponible
+export const auth = app ? getAuth(app) : null
+export const db = app ? getFirestore(app) : null
 
 // Inicializar Analytics (solo en el browser y si está soportado)
-export const analytics = typeof window !== 'undefined' ? 
+export const analytics = typeof window !== 'undefined' && app ? 
   isSupported().then(yes => yes ? getAnalytics(app) : null) : null
 
 // Configurar el proveedor de Google
-export const googleProvider = new GoogleAuthProvider()
-googleProvider.setCustomParameters({
-  prompt: 'select_account',
-})
+export const googleProvider = app ? new GoogleAuthProvider() : null
+if (googleProvider) {
+  googleProvider.setCustomParameters({
+    prompt: 'select_account',
+  })
+}
 
 export default app
