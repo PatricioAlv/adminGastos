@@ -7,7 +7,7 @@ import { useAuth } from '@/components/providers/AuthProvider'
 import { expenseService } from '@/lib/firestore'
 import { LocalExpense } from '@/types'
 
-export function DashboardStats() {
+export function DashboardStats({ refreshKey }: { refreshKey?: number }) {
   const { user } = useAuth()
   const [expenses, setExpenses] = useState<LocalExpense[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -21,17 +21,31 @@ export function DashboardStats() {
       
       try {
         setIsLoading(true)
-        const currentMonthExpenses = await expenseService.getCurrentMonthByUser(user.id)
+        
+        // Usar getByUser que funciona con los índices existentes
+        const allExpenses = await expenseService.getByUser(user.id, 100)
+        
+        // Filtrar por mes actual en el cliente
+        const now = new Date()
+        const currentMonth = now.getMonth()
+        const currentYear = now.getFullYear()
+        
+        const currentMonthExpenses = allExpenses.filter(expense => {
+          const expenseDate = new Date(expense.fecha)
+          return expenseDate.getMonth() === currentMonth && 
+                 expenseDate.getFullYear() === currentYear
+        })
+        
         setExpenses(currentMonthExpenses)
       } catch (error) {
-        console.error('Error al cargar gastos:', error)
+        console.error('Error al cargar gastos del dashboard:', error)
       } finally {
         setIsLoading(false)
       }
     }
 
     loadExpenses()
-  }, [user])
+  }, [user, refreshKey])
 
   // Calcular estadísticas
   const gastosEsteMes = expenses.reduce((total, expense) => total + expense.monto, 0)

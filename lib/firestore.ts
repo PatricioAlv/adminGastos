@@ -6,6 +6,7 @@ import {
   deleteDoc,
   getDocs,
   getDoc,
+  setDoc,
   query,
   where,
   orderBy,
@@ -18,8 +19,11 @@ import { db } from '@/lib/firebase'
 import { Expense, FixedExpense, Budget, User, LocalExpense } from '@/types'
 
 // Utilidades para convertir datos de Firestore
-const convertTimestamp = (timestamp: Timestamp): Date => {
-  return timestamp.toDate()
+const convertTimestamp = (timestamp: any): Date => {
+  if (!timestamp) return new Date()
+  if (timestamp.toDate) return timestamp.toDate()
+  if (typeof timestamp === 'string') return new Date(timestamp)
+  return new Date(timestamp)
 }
 
 const convertExpenseFromFirestore = (
@@ -28,13 +32,13 @@ const convertExpenseFromFirestore = (
   const data = doc.data()
   return {
     id: doc.id,
-    descripcion: data.descripcion,
-    monto: data.monto,
-    categoria: data.categoria,
-    fecha: data.fecha,
+    descripcion: data.descripcion || '',
+    monto: data.monto || 0,
+    categoria: data.categoria || 'otros',
+    fecha: data.fecha || new Date().toISOString().split('T')[0],
     createdAt: convertTimestamp(data.createdAt),
     updatedAt: convertTimestamp(data.updatedAt),
-    userId: data.userId,
+    userId: data.userId || '',
   }
 }
 
@@ -51,7 +55,7 @@ export const expenseService = {
     return docRef.id
   },
 
-  // Obtener gastos del usuario
+  // Obtener gastos del usuario (optimizado con índices)
   async getByUser(userId: string, limitCount = 50): Promise<LocalExpense[]> {
     const q = query(
       collection(db, 'expenses'),
@@ -63,7 +67,7 @@ export const expenseService = {
     return querySnapshot.docs.map(convertExpenseFromFirestore)
   },
 
-  // Obtener gastos del mes actual
+  // Obtener gastos del mes actual (optimizado con índices)
   async getCurrentMonthByUser(userId: string): Promise<LocalExpense[]> {
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -114,7 +118,7 @@ export const userService = {
     } else {
       // Usuario nuevo, crear
       const now = Timestamp.now()
-      await updateDoc(userRef, {
+      await setDoc(userRef, {
         ...userData,
         createdAt: now,
         updatedAt: now,

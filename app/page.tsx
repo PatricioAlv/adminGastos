@@ -31,7 +31,7 @@ function MainApp() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <DashboardStats key={`dashboard-${refreshKey}`} />
+            <DashboardStats refreshKey={refreshKey} />
             
             {/* Botón flotante para agregar gasto */}
             <motion.button
@@ -50,7 +50,7 @@ function MainApp() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <ExpenseList key={`expenses-${refreshKey}`} />
+            <ExpenseList refreshKey={refreshKey} />
           </motion.div>
         )}
 

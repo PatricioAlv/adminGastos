@@ -1,56 +1,48 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { MagnifyingGlassIcon, FunnelIcon, CalendarIcon } from '@heroicons/react/24/outline'
+import { useAuth } from '@/components/providers/AuthProvider'
+import { expenseService } from '@/lib/firestore'
+import { LocalExpense } from '@/types'
 
-export function ExpenseList() {
+export function ExpenseList({ refreshKey }: { refreshKey?: number }) {
+  const { user } = useAuth()
+  const [expenses, setExpenses] = useState<LocalExpense[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
 
-  // Datos de ejemplo
-  const gastos = [
-    {
-      id: 1,
-      descripcion: 'Almuerzo en McDonald\'s',
-      monto: 45.50,
-      categoria: 'alimentacion',
-      fecha: '2024-08-02',
-      emoji: '🍽️'
-    },
-    {
-      id: 2,
-      descripcion: 'Gasolina para el auto',
-      monto: 75.00,
-      categoria: 'transporte',
-      fecha: '2024-08-01',
-      emoji: '🚗'
-    },
-    {
-      id: 3,
-      descripcion: 'Entrada al cine',
-      monto: 25.30,
-      categoria: 'entretenimiento',
-      fecha: '2024-07-31',
-      emoji: '🎬'
-    },
-    {
-      id: 4,
-      descripcion: 'Compras en supermercado',
-      monto: 120.75,
-      categoria: 'alimentacion',
-      fecha: '2024-07-30',
-      emoji: '🍽️'
-    },
-    {
-      id: 5,
-      descripcion: 'Medicamentos',
-      monto: 35.20,
-      categoria: 'salud',
-      fecha: '2024-07-29',
-      emoji: '⚕️'
-    },
-  ]
+  useEffect(() => {
+    const loadExpenses = async () => {
+      if (!user) return
+      
+      try {
+        setIsLoading(true)
+        const userExpenses = await expenseService.getByUser(user.id, 100) // Cargar más gastos para la lista
+        setExpenses(userExpenses)
+      } catch (error) {
+        console.error('Error al cargar gastos:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadExpenses()
+  }, [user, refreshKey])
+
+  // Mapear categorías a emojis y colores
+  const categoryEmojis: { [key: string]: string } = {
+    'alimentacion': '🍽️',
+    'transporte': '🚗',
+    'entretenimiento': '🎬',
+    'salud': '⚕️',
+    'educacion': '📚',
+    'hogar': '�',
+    'ropa': '👕',
+    'otros': '📦',
+  }
 
   const categorias = [
     { id: 'all', nombre: 'Todos', color: 'bg-gray-100 text-gray-800' },
@@ -58,9 +50,13 @@ export function ExpenseList() {
     { id: 'transporte', nombre: 'Transporte', color: 'bg-blue-100 text-blue-800' },
     { id: 'entretenimiento', nombre: 'Entretenimiento', color: 'bg-purple-100 text-purple-800' },
     { id: 'salud', nombre: 'Salud', color: 'bg-red-100 text-red-800' },
+    { id: 'educacion', nombre: 'Educación', color: 'bg-indigo-100 text-indigo-800' },
+    { id: 'hogar', nombre: 'Hogar', color: 'bg-yellow-100 text-yellow-800' },
+    { id: 'ropa', nombre: 'Ropa', color: 'bg-pink-100 text-pink-800' },
+    { id: 'otros', nombre: 'Otros', color: 'bg-gray-100 text-gray-800' },
   ]
 
-  const gastosFiltrados = gastos.filter(gasto => {
+  const gastosFiltrados = expenses.filter(gasto => {
     const matchesSearch = gasto.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = selectedCategory === 'all' || gasto.categoria === selectedCategory
     return matchesSearch && matchesCategory
@@ -79,6 +75,24 @@ export function ExpenseList() {
     } else {
       return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-gray-300 rounded-xl h-12 animate-pulse"></div>
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-gray-300 rounded-full h-8 w-20 animate-pulse flex-shrink-0"></div>
+          ))}
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="bg-gray-300 rounded-xl h-16 animate-pulse"></div>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -144,7 +158,7 @@ export function ExpenseList() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="text-2xl">{gasto.emoji}</div>
+                  <div className="text-2xl">{categoryEmojis[gasto.categoria] || '📦'}</div>
                   <div>
                     <h3 className="font-semibold text-gray-900">{gasto.descripcion}</h3>
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
@@ -154,7 +168,7 @@ export function ExpenseList() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-gray-900">${gasto.monto}</p>
+                  <p className="text-lg font-bold text-gray-900">${gasto.monto.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
                   <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                     categorias.find(c => c.id === gasto.categoria)?.color || 'bg-gray-100 text-gray-800'
                   }`}>
