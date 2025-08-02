@@ -18,6 +18,14 @@ import {
 import { db } from '@/lib/firebase'
 import { Expense, FixedExpense, Budget, User, LocalExpense, UserSettings } from '@/types'
 
+// Helper function para verificar que Firebase esté configurado
+function requireFirestore() {
+  if (!db) {
+    throw new Error('Firebase no está configurado. Las variables de entorno no están disponibles.')
+  }
+  return db
+}
+
 // Utilidades para convertir datos de Firestore
 const convertTimestamp = (timestamp: any): Date => {
   if (!timestamp) return new Date()
@@ -46,8 +54,9 @@ const convertExpenseFromFirestore = (
 export const expenseService = {
   // Crear un nuevo gasto
   async create(expenseData: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>) {
+    const firestore = requireFirestore()
     const now = Timestamp.now()
-    const docRef = await addDoc(collection(db, 'expenses'), {
+    const docRef = await addDoc(collection(firestore, 'expenses'), {
       ...expenseData,
       createdAt: now,
       updatedAt: now,
@@ -57,8 +66,10 @@ export const expenseService = {
 
   // Obtener gastos del usuario (optimizado con índices)
   async getByUser(userId: string, limitCount = 50): Promise<LocalExpense[]> {
+    if (!db) return []
+    const firestore = requireFirestore()
     const q = query(
-      collection(db, 'expenses'),
+      collection(firestore, 'expenses'),
       where('userId', '==', userId),
       orderBy('createdAt', 'desc'),
       limit(limitCount)
@@ -77,7 +88,7 @@ export const expenseService = {
     const endDate = endOfMonth.toISOString().split('T')[0]
 
     const q = query(
-      collection(db, 'expenses'),
+      collection(requireFirestore(), 'expenses'),
       where('userId', '==', userId),
       where('fecha', '>=', startDate),
       where('fecha', '<=', endDate),
@@ -89,7 +100,8 @@ export const expenseService = {
 
   // Actualizar gasto
   async update(id: string, data: Partial<Expense>) {
-    const docRef = doc(db, 'expenses', id)
+    const firestore = requireFirestore()
+    const docRef = doc(firestore, 'expenses', id)
     await updateDoc(docRef, {
       ...data,
       updatedAt: Timestamp.now(),
@@ -98,7 +110,8 @@ export const expenseService = {
 
   // Eliminar gasto
   async delete(id: string) {
-    await deleteDoc(doc(db, 'expenses', id))
+    const firestore = requireFirestore()
+    await deleteDoc(doc(firestore, 'expenses', id))
   },
 }
 
@@ -106,7 +119,7 @@ export const expenseService = {
 export const userService = {
   // Crear o actualizar usuario
   async createOrUpdate(userData: Omit<User, 'createdAt' | 'updatedAt'>) {
-    const userRef = doc(db, 'users', userData.id)
+    const userRef = doc(requireFirestore(), 'users', userData.id)
     const userDoc = await getDoc(userRef)
     
     if (userDoc.exists()) {
@@ -128,7 +141,7 @@ export const userService = {
 
   // Obtener usuario por ID
   async getById(id: string): Promise<User | null> {
-    const userDoc = await getDoc(doc(db, 'users', id))
+    const userDoc = await getDoc(doc(requireFirestore(), 'users', id))
     if (userDoc.exists()) {
       return { id: userDoc.id, ...userDoc.data() } as User
     }
@@ -140,7 +153,7 @@ export const userService = {
 export const fixedExpenseService = {
   async create(data: Omit<FixedExpense, 'id' | 'createdAt' | 'updatedAt'>) {
     const now = Timestamp.now()
-    const docRef = await addDoc(collection(db, 'fixedExpenses'), {
+    const docRef = await addDoc(collection(requireFirestore(), 'fixedExpenses'), {
       ...data,
       createdAt: now,
       updatedAt: now,
@@ -151,7 +164,7 @@ export const fixedExpenseService = {
   async getByUser(userId: string): Promise<FixedExpense[]> {
     try {
       const q = query(
-        collection(db, 'fixedExpenses'),
+        collection(requireFirestore(), 'fixedExpenses'),
         where('userId', '==', userId)
       )
       const querySnapshot = await getDocs(q)
@@ -169,14 +182,14 @@ export const fixedExpenseService = {
   },
 
   async update(id: string, data: Partial<FixedExpense>) {
-    await updateDoc(doc(db, 'fixedExpenses', id), {
+    await updateDoc(doc(requireFirestore(), 'fixedExpenses', id), {
       ...data,
       updatedAt: Timestamp.now(),
     })
   },
 
   async delete(id: string) {
-    await deleteDoc(doc(db, 'fixedExpenses', id))
+    await deleteDoc(doc(requireFirestore(), 'fixedExpenses', id))
   },
 }
 
@@ -185,7 +198,7 @@ export const budgetService = {
   async createOrUpdate(budgetData: Omit<Budget, 'id' | 'createdAt' | 'updatedAt'>) {
     // Buscar presupuesto existente para el mes/año
     const q = query(
-      collection(db, 'budgets'),
+      collection(requireFirestore(), 'budgets'),
       where('userId', '==', budgetData.userId),
       where('mes', '==', budgetData.mes),
       where('año', '==', budgetData.año)
@@ -203,7 +216,7 @@ export const budgetService = {
     } else {
       // Crear nuevo
       const now = Timestamp.now()
-      const docRef = await addDoc(collection(db, 'budgets'), {
+      const docRef = await addDoc(collection(requireFirestore(), 'budgets'), {
         ...budgetData,
         createdAt: now,
         updatedAt: now,
@@ -218,7 +231,7 @@ export const budgetService = {
     const año = now.getFullYear()
 
     const q = query(
-      collection(db, 'budgets'),
+      collection(requireFirestore(), 'budgets'),
       where('userId', '==', userId),
       where('mes', '==', mes),
       where('año', '==', año)
@@ -238,7 +251,7 @@ export const userSettingsService = {
   async get(userId: string): Promise<UserSettings | null> {
     try {
       const q = query(
-        collection(db, 'userSettings'),
+        collection(requireFirestore(), 'userSettings'),
         where('userId', '==', userId)
       )
       const querySnapshot = await getDocs(q)
@@ -261,7 +274,7 @@ export const userSettingsService = {
       
       if (existing) {
         // Actualizar existente
-        await updateDoc(doc(db, 'userSettings', existing.id), {
+        await updateDoc(doc(requireFirestore(), 'userSettings', existing.id), {
           ...settings,
           updatedAt: Timestamp.now(),
         })
@@ -288,7 +301,7 @@ export const userSettingsService = {
           ...settings, // Sobrescribir con settings proporcionados
         }
         
-        const docRef = await addDoc(collection(db, 'userSettings'), defaultSettings)
+        const docRef = await addDoc(collection(requireFirestore(), 'userSettings'), defaultSettings)
         return docRef.id
       }
     } catch (error) {
