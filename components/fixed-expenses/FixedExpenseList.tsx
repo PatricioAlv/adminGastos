@@ -9,12 +9,15 @@ import {
   TrashIcon,
   EyeSlashIcon,
   EyeIcon,
-  PencilIcon
+  PencilIcon,
+  CheckIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { fixedExpenseService } from '@/lib/firestore'
-import { FixedExpense } from '@/types'
+import { fixedExpenseService, fixedExpensePaymentService } from '@/lib/firestore'
+import { FixedExpense, FixedExpensePayment } from '@/types'
 import { EditFixedExpenseForm } from './EditFixedExpenseForm'
+import { PayFixedExpenseModal } from './PayFixedExpenseModal'
 import toast from 'react-hot-toast'
 
 interface FixedExpenseListProps {
@@ -25,17 +28,34 @@ interface FixedExpenseListProps {
 export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListProps) {
   const { user } = useAuth()
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([])
+  const [monthlyPayments, setMonthlyPayments] = useState<FixedExpensePayment[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [editingExpense, setEditingExpense] = useState<FixedExpense | null>(null)
+  const [payingExpense, setPayingExpense] = useState<FixedExpense | null>(null)
+  
+  const currentDate = new Date()
+  const currentMonth = currentDate.getMonth() + 1
+  const currentYear = currentDate.getFullYear()
 
   useEffect(() => {
-    const loadFixedExpenses = async () => {
+    const loadFixedExpensesAndPayments = async () => {
       if (!user) return
       
       try {
         setIsLoading(true)
+        
+        // Cargar gastos fijos
         const expenses = await fixedExpenseService.getByUser(user.id)
         setFixedExpenses(expenses)
+        
+        // Cargar pagos del mes actual
+        const payments = await fixedExpensePaymentService.getByUserAndMonth(
+          user.id, 
+          currentMonth, 
+          currentYear
+        )
+        setMonthlyPayments(payments)
+        
       } catch (error) {
         console.error('Error al cargar gastos fijos:', error)
         toast.error('Error al cargar gastos fijos')
@@ -44,8 +64,8 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
       }
     }
 
-    loadFixedExpenses()
-  }, [user, refreshKey])
+    loadFixedExpensesAndPayments()
+  }, [user, refreshKey, currentMonth, currentYear])
 
   const handleExpenseUpdated = () => {
     // Recargar la lista de gastos fijos
@@ -58,6 +78,40 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
     // Recargar la lista de gastos fijos
     if (user) {
       fixedExpenseService.getByUser(user.id).then(setFixedExpenses)
+    }
+  }
+
+  const handlePaymentUpdated = async () => {
+    // Recargar los pagos del mes actual
+    if (user) {
+      const payments = await fixedExpensePaymentService.getByUserAndMonth(
+        user.id, 
+        currentMonth, 
+        currentYear
+      )
+      setMonthlyPayments(payments)
+    }
+  }
+
+  const getPaymentForExpense = (expenseId: string): FixedExpensePayment | undefined => {
+    return monthlyPayments.find(payment => payment.fixedExpenseId === expenseId)
+  }
+
+  const handleMarkAsPending = async (expense: FixedExpense) => {
+    if (!user) return
+    
+    try {
+      await fixedExpensePaymentService.markAsPending(
+        expense.id,
+        user.id,
+        currentMonth,
+        currentYear
+      )
+      await handlePaymentUpdated()
+      toast.success('Gasto marcado como pendiente')
+    } catch (error) {
+      console.error('Error al marcar como pendiente:', error)
+      toast.error('Error al actualizar el estado')
     }
   }
 
@@ -238,13 +292,54 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
                 
                 <div className="flex items-center space-x-3">
                   <div className="text-right">
-                    <p className={`text-lg font-bold ${expense.isActive ? 'text-gray-900' : 'text-gray-500'}`}>
-                      ${expense.monto.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
-                    </p>
-                    <p className="text-xs text-gray-500">por mes</p>
+                    {(() => {
+                      const payment = getPaymentForExpense(expense.id)
+                      if (payment) {
+                        return (
+                          <>
+                            <p className={`text-lg font-bold ${expense.isActive ? 'text-green-600' : 'text-gray-500'}`}>
+                              ${payment.monto.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                            </p>
+                            <p className="text-xs text-green-600 font-medium">✓ Pagado</p>
+                          </>
+                        )
+                      } else {
+                        return (
+                          <>
+                            <p className="text-lg font-bold text-orange-600">Pendiente</p>
+                            <p className="text-xs text-gray-500">Sin pagar</p>
+                          </>
+                        )
+                      }
+                    })()}
                   </div>
                   
                   <div className="flex items-center space-x-1">
+                    {(() => {
+                      const payment = getPaymentForExpense(expense.id)
+                      if (payment) {
+                        return (
+                          <button
+                            onClick={() => handleMarkAsPending(expense)}
+                            className="p-2 hover:bg-orange-50 rounded-full transition-colors btn-touch"
+                            title="Marcar como pendiente"
+                          >
+                            <ClockIcon className="h-4 w-4 text-orange-600" />
+                          </button>
+                        )
+                      } else {
+                        return (
+                          <button
+                            onClick={() => setPayingExpense(expense)}
+                            className="p-2 hover:bg-green-50 rounded-full transition-colors btn-touch"
+                            title="Marcar como pagado"
+                          >
+                            <CheckIcon className="h-4 w-4 text-green-600" />
+                          </button>
+                        )
+                      }
+                    })()}
+                    
                     <button
                       onClick={() => setEditingExpense(expense)}
                       className="p-2 hover:bg-blue-50 rounded-full transition-colors btn-touch"
@@ -288,17 +383,26 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
           className="bg-primary-50 rounded-xl p-4 border border-primary-200"
         >
           <div className="flex justify-between items-center">
-            <span className="text-primary-700 font-medium">Total mensual:</span>
+            <span className="text-primary-700 font-medium">Total pagado este mes:</span>
             <span className="text-xl font-bold text-primary-900">
-              ${fixedExpenses
-                .filter(expense => expense.isActive)
-                .reduce((sum, expense) => sum + expense.monto, 0)
+              ${monthlyPayments
+                .filter(payment => payment.isPagado)
+                .reduce((sum, payment) => sum + payment.monto, 0)
                 .toLocaleString('es-ES', { minimumFractionDigits: 2 })}
             </span>
           </div>
-          <p className="text-sm text-primary-600 mt-1">
-            {fixedExpenses.filter(expense => expense.isActive).length} gastos activos
-          </p>
+          <div className="flex justify-between items-center mt-2">
+            <span className="text-sm text-primary-600">Gastos pagados:</span>
+            <span className="text-sm font-medium text-primary-700">
+              {monthlyPayments.filter(payment => payment.isPagado).length} de {fixedExpenses.filter(expense => expense.isActive).length}
+            </span>
+          </div>
+          <div className="flex justify-between items-center mt-1">
+            <span className="text-sm text-orange-600">Pendientes:</span>
+            <span className="text-sm font-medium text-orange-700">
+              {fixedExpenses.filter(expense => expense.isActive).length - monthlyPayments.filter(payment => payment.isPagado).length}
+            </span>
+          </div>
         </motion.div>
       )}
 
@@ -309,6 +413,17 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
           onClose={() => setEditingExpense(null)}
           onExpenseUpdated={handleExpenseUpdated}
           onExpenseDeleted={handleExpenseDeleted}
+        />
+      )}
+
+      {/* Modal de pago */}
+      {payingExpense && (
+        <PayFixedExpenseModal
+          expense={payingExpense}
+          mes={currentMonth}
+          año={currentYear}
+          onClose={() => setPayingExpense(null)}
+          onPaymentUpdated={handlePaymentUpdated}
         />
       )}
     </div>

@@ -335,3 +335,6 @@ export const userSettingsService = {
     }
   },
 }
+
+// Re-exportar el servicio de pagos de gastos fijos
+export { fixedExpensePaymentService } from './fixedExpensePaymentService'

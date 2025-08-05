@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react'
 import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, CreditCardIcon, ChartBarIcon } from '@heroicons/react/24/outline'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { expenseService, fixedExpenseService, userSettingsService } from '@/lib/firestore'
-import { LocalExpense, FixedExpense, UserSettings } from '@/types'
+import { expenseService, fixedExpenseService, fixedExpensePaymentService, userSettingsService } from '@/lib/firestore'
+import { LocalExpense, FixedExpense, FixedExpensePayment, UserSettings } from '@/types'
 
 export function DashboardStats({ refreshKey }: { refreshKey?: number }) {
   const { user } = useAuth()
   const [expenses, setExpenses] = useState<LocalExpense[]>([])
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([])
+  const [fixedExpensePayments, setFixedExpensePayments] = useState<FixedExpensePayment[]>([])
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   
@@ -33,12 +34,12 @@ export function DashboardStats({ refreshKey }: { refreshKey?: number }) {
         
         // Filtrar por mes actual en el cliente
         const now = new Date()
-        const currentMonth = now.getMonth()
+        const currentMonth = now.getMonth() + 1 // JavaScript months are 0-indexed, our data uses 1-indexed
         const currentYear = now.getFullYear()
         
         const currentMonthExpenses = allExpenses.filter(expense => {
           const expenseDate = new Date(expense.fecha)
-          return expenseDate.getMonth() === currentMonth && 
+          return expenseDate.getMonth() === (currentMonth - 1) && // Convert back to 0-indexed for Date
                  expenseDate.getFullYear() === currentYear
         })
         
@@ -47,6 +48,14 @@ export function DashboardStats({ refreshKey }: { refreshKey?: number }) {
         // Cargar gastos fijos
         const activeFixedExpenses = await fixedExpenseService.getByUser(user.id)
         setFixedExpenses(activeFixedExpenses.filter(expense => expense.isActive))
+
+        // Cargar pagos de gastos fijos del mes actual
+        const payments = await fixedExpensePaymentService.getByUserAndMonth(
+          user.id,
+          currentMonth,
+          currentYear
+        )
+        setFixedExpensePayments(payments)
       } catch (error) {
         console.error('Error al cargar gastos del dashboard:', error)
       } finally {
@@ -59,7 +68,9 @@ export function DashboardStats({ refreshKey }: { refreshKey?: number }) {
 
   // Calcular estadísticas
   const gastosEsteMes = expenses.reduce((total, expense) => total + expense.monto, 0)
-  const gastosFijos = fixedExpenses.reduce((total, expense) => total + expense.monto, 0)
+  const gastosFijos = fixedExpensePayments
+    .filter(payment => payment.isPagado)
+    .reduce((total, payment) => total + payment.monto, 0)
   const gastosTotales = gastosEsteMes + gastosFijos
   const porcentajeGastado = (gastosTotales / presupuestoMensual) * 100
   const disponible = presupuestoMensual - gastosTotales

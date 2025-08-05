@@ -32,10 +32,22 @@ export interface Category {
 export interface FixedExpense {
   id: string
   descripcion: string
-  monto: number
   categoria: string
   fechaVencimiento: number // día del mes (1-31)
   isActive: boolean
+  userId: string
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+
+export interface FixedExpensePayment {
+  id: string
+  fixedExpenseId: string
+  mes: number // 1-12
+  año: number
+  monto: number
+  fechaPago: string // YYYY-MM-DD cuando se marcó como pagado
+  isPagado: boolean
   userId: string
   createdAt: Timestamp
   updatedAt: Timestamp
