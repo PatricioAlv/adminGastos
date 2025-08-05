@@ -2,19 +2,34 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { MagnifyingGlassIcon, FunnelIcon, CalendarIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { 
+  MagnifyingGlassIcon, 
+  FunnelIcon, 
+  CalendarIcon, 
+  PencilIcon, 
+  TrashIcon,
+  PlusIcon,
+  EllipsisVerticalIcon
+} from '@heroicons/react/24/outline'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { expenseService } from '@/lib/firestore'
 import { LocalExpense } from '@/types'
 import { EditExpenseForm } from './EditExpenseForm'
+import toast from 'react-hot-toast'
 
-export function ExpenseList({ refreshKey }: { refreshKey?: number }) {
+interface ExpenseListProps {
+  refreshKey?: number
+  onAddClick: () => void
+}
+
+export function ExpenseList({ refreshKey, onAddClick }: ExpenseListProps) {
   const { user } = useAuth()
   const [expenses, setExpenses] = useState<LocalExpense[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [editingExpense, setEditingExpense] = useState<LocalExpense | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   useEffect(() => {
     const loadExpenses = async () => {
@@ -33,6 +48,18 @@ export function ExpenseList({ refreshKey }: { refreshKey?: number }) {
 
     loadExpenses()
   }, [user, refreshKey])
+
+  // Cerrar menú al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenMenuId(null)
+    }
+    
+    if (openMenuId) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [openMenuId])
 
   const handleExpenseUpdated = () => {
     // Recargar la lista de gastos
@@ -54,10 +81,10 @@ export function ExpenseList({ refreshKey }: { refreshKey?: number }) {
     try {
       await expenseService.delete(expense.id)
       setExpenses(prev => prev.filter(exp => exp.id !== expense.id))
-      // toast.success('Gasto eliminado') // Descomenta si tienes toast configurado
+      toast.success('Gasto eliminado')
     } catch (error) {
       console.error('Error al eliminar gasto:', error)
-      // toast.error('Error al eliminar el gasto') // Descomenta si tienes toast configurado
+      toast.error('Error al eliminar el gasto')
     }
   }
 
@@ -68,8 +95,9 @@ export function ExpenseList({ refreshKey }: { refreshKey?: number }) {
     'entretenimiento': '🎬',
     'salud': '⚕️',
     'educacion': '📚',
-    'hogar': '�',
+    'hogar': '🏠',
     'ropa': '👕',
+    'finanzas': '💳',
     'otros': '📦',
   }
 
@@ -82,6 +110,7 @@ export function ExpenseList({ refreshKey }: { refreshKey?: number }) {
     { id: 'educacion', nombre: 'Educación', color: 'bg-indigo-100 text-indigo-800' },
     { id: 'hogar', nombre: 'Hogar', color: 'bg-yellow-100 text-yellow-800' },
     { id: 'ropa', nombre: 'Ropa', color: 'bg-pink-100 text-pink-800' },
+    { id: 'finanzas', nombre: 'Finanzas', color: 'bg-emerald-100 text-emerald-800' },
     { id: 'otros', nombre: 'Otros', color: 'bg-gray-100 text-gray-800' },
   ]
 
@@ -127,9 +156,19 @@ export function ExpenseList({ refreshKey }: { refreshKey?: number }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Mis Gastos</h2>
-        <p className="text-gray-600">Historial completo de tus gastos</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Mis Gastos</h2>
+          <p className="text-gray-600">Historial completo de tus gastos</p>
+        </div>
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={onAddClick}
+          className="bg-primary-500 text-white px-4 py-2 rounded-lg btn-touch flex items-center space-x-2"
+        >
+          <PlusIcon className="h-5 w-5" />
+          <span>Agregar</span>
+        </motion.button>
       </div>
 
       {/* Búsqueda y filtros */}
@@ -183,44 +222,77 @@ export function ExpenseList({ refreshKey }: { refreshKey?: number }) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"
+              className="bg-white rounded-lg p-3 shadow-sm border border-gray-100"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 flex-1">
-                  <div className="text-2xl">{categoryEmojis[gasto.categoria] || '📦'}</div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{gasto.descripcion}</h3>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
-                      <CalendarIcon className="h-4 w-4" />
-                      <span>{formatDate(gasto.fecha)}</span>
+              <div className="space-y-2">
+                {/* Header con información del gasto */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <div className="text-xl flex-shrink-0">{categoryEmojis[gasto.categoria] || '📦'}</div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 truncate">{gasto.descripcion}</h3>
+                      <div className="flex items-center space-x-2 text-sm text-gray-500 mt-0.5">
+                        <CalendarIcon className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{formatDate(gasto.fecha)}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          categorias.find(c => c.id === gasto.categoria)?.color || 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {categorias.find(c => c.id === gasto.categoria)?.nombre}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-gray-900">${gasto.monto.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
-                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                      categorias.find(c => c.id === gasto.categoria)?.color || 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {categorias.find(c => c.id === gasto.categoria)?.nombre}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <button
-                      onClick={() => setEditingExpense(gasto)}
-                      className="p-2 hover:bg-blue-50 rounded-full transition-colors btn-touch"
-                      title="Editar gasto"
-                    >
-                      <PencilIcon className="h-4 w-4 text-blue-600" />
-                    </button>
+                  
+                  {/* Monto y botones - Mobile optimized */}
+                  <div className="flex flex-col items-end space-y-1 flex-shrink-0 ml-2">
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-gray-900">
+                        ${gasto.monto.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
                     
-                    <button
-                      onClick={() => handleDelete(gasto)}
-                      className="p-2 hover:bg-red-50 rounded-full transition-colors btn-touch"
-                      title="Eliminar gasto"
-                    >
-                      <TrashIcon className="h-4 w-4 text-red-500" />
-                    </button>
+                    {/* Menú de acciones */}
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setOpenMenuId(openMenuId === gasto.id ? null : gasto.id)
+                        }}
+                        className="p-1.5 hover:bg-gray-100 rounded-full transition-colors btn-touch"
+                      >
+                        <EllipsisVerticalIcon className="h-4 w-4 text-gray-600" />
+                      </button>
+                      
+                      {/* Dropdown menu */}
+                      {openMenuId === gasto.id && (
+                        <div 
+                          className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[130px]"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={() => {
+                              setEditingExpense(gasto)
+                              setOpenMenuId(null)
+                            }}
+                            className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center space-x-2"
+                          >
+                            <PencilIcon className="h-3 w-3 text-blue-600" />
+                            <span>Editar</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              handleDelete(gasto)
+                              setOpenMenuId(null)
+                            }}
+                            className="w-full px-3 py-1.5 text-left text-xs hover:bg-red-50 text-red-600 flex items-center space-x-2 border-t border-gray-100"
+                          >
+                            <TrashIcon className="h-3 w-3" />
+                            <span>Eliminar</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

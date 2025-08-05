@@ -34,6 +34,7 @@ export function EditFixedExpenseForm({ expense, onClose, onExpenseUpdated, onExp
     { id: 'salud', nombre: 'Salud', color: 'bg-red-100 text-red-800', emoji: '⚕️' },
     { id: 'educacion', nombre: 'Educación', color: 'bg-indigo-100 text-indigo-800', emoji: '📚' },
     { id: 'alimentacion', nombre: 'Alimentación', color: 'bg-green-100 text-green-800', emoji: '🍽️' },
+    { id: 'finanzas', nombre: 'Finanzas', color: 'bg-emerald-100 text-emerald-800', emoji: '💳' },
     { id: 'otros', nombre: 'Otros', color: 'bg-gray-100 text-gray-800', emoji: '📦' },
   ]
 

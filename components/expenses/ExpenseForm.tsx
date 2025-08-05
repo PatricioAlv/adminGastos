@@ -30,6 +30,7 @@ export function ExpenseForm({ onClose, onExpenseAdded }: ExpenseFormProps) {
     { id: 'educacion', nombre: 'Educación', color: 'bg-indigo-100 text-indigo-800', emoji: '📚' },
     { id: 'hogar', nombre: 'Hogar', color: 'bg-yellow-100 text-yellow-800', emoji: '🏠' },
     { id: 'ropa', nombre: 'Ropa', color: 'bg-pink-100 text-pink-800', emoji: '👕' },
+    { id: 'finanzas', nombre: 'Finanzas', color: 'bg-emerald-100 text-emerald-800', emoji: '💳' },
     { id: 'otros', nombre: 'Otros', color: 'bg-gray-100 text-gray-800', emoji: '📦' },
   ]
 

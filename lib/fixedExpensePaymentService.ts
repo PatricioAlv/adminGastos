@@ -72,7 +72,8 @@ export const fixedExpensePaymentService = {
 
   // Obtener pago específico por gasto fijo, mes y año
   getByFixedExpenseAndMonth: async (
-    fixedExpenseId: string, 
+    fixedExpenseId: string,
+    userId: string,
     mes: number, 
     año: number
   ): Promise<FixedExpensePayment | null> => {
@@ -80,6 +81,7 @@ export const fixedExpensePaymentService = {
     const q = query(
       collection(firestore, COLLECTION_NAME),
       where('fixedExpenseId', '==', fixedExpenseId),
+      where('userId', '==', userId),
       where('mes', '==', mes),
       where('año', '==', año)
     )
@@ -107,7 +109,8 @@ export const fixedExpensePaymentService = {
     
     // Buscar si ya existe un registro para este mes/año
     const existingPayment = await fixedExpensePaymentService.getByFixedExpenseAndMonth(
-      fixedExpenseId, 
+      fixedExpenseId,
+      userId,
       mes, 
       año
     )
@@ -143,7 +146,8 @@ export const fixedExpensePaymentService = {
   ): Promise<void> => {
     const firestore = requireFirestore()
     const existingPayment = await fixedExpensePaymentService.getByFixedExpenseAndMonth(
-      fixedExpenseId, 
+      fixedExpenseId,
+      userId,
       mes, 
       año
     )

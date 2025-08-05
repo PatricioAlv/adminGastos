@@ -11,7 +11,8 @@ import {
   EyeIcon,
   PencilIcon,
   CheckIcon,
-  ClockIcon
+  ClockIcon,
+  EllipsisVerticalIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { fixedExpenseService, fixedExpensePaymentService } from '@/lib/firestore'
@@ -32,6 +33,7 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
   const [isLoading, setIsLoading] = useState(true)
   const [editingExpense, setEditingExpense] = useState<FixedExpense | null>(null)
   const [payingExpense, setPayingExpense] = useState<FixedExpense | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   
   const currentDate = new Date()
   const currentMonth = currentDate.getMonth() + 1
@@ -66,6 +68,18 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
 
     loadFixedExpensesAndPayments()
   }, [user, refreshKey, currentMonth, currentYear])
+
+  // Cerrar menú al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenMenuId(null)
+    }
+    
+    if (openMenuId) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [openMenuId])
 
   const handleExpenseUpdated = () => {
     // Recargar la lista de gastos fijos
@@ -159,6 +173,7 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
     'educacion': '📚',
     'hogar': '🏠',
     'ropa': '👕',
+    'finanzas': '💳',
     'otros': '📦',
   }
 
@@ -170,6 +185,7 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
     'educacion': 'Educación',
     'hogar': 'Hogar',
     'ropa': 'Ropa',
+    'finanzas': 'Finanzas',
     'otros': 'Otros',
   }
 
@@ -181,6 +197,7 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
     'educacion': 'bg-indigo-100 text-indigo-800',
     'hogar': 'bg-yellow-100 text-yellow-800',
     'ropa': 'bg-pink-100 text-pink-800',
+    'finanzas': 'bg-emerald-100 text-emerald-800',
     'otros': 'bg-gray-100 text-gray-800',
   }
 
@@ -258,115 +275,209 @@ export function FixedExpenseList({ refreshKey, onAddClick }: FixedExpenseListPro
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`bg-white rounded-xl p-4 shadow-sm border ${
+              className={`bg-white rounded-lg p-3 shadow-sm border ${
                 expense.isActive ? 'border-gray-100' : 'border-gray-200 opacity-60'
               }`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="text-2xl">{categoryEmojis[expense.categoria] || '📦'}</div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <h3 className={`font-semibold ${expense.isActive ? 'text-gray-900' : 'text-gray-500'}`}>
-                        {expense.descripcion}
-                      </h3>
-                      {!expense.isActive && (
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                          Pausado
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                      <div className="flex items-center space-x-1">
-                        <CalendarIcon className="h-4 w-4" />
-                        <span>Día {expense.fechaVencimiento} - Próximo: {getNextDueDate(expense.fechaVencimiento)}</span>
+              <div className="space-y-2">
+                {/* Header con información del gasto */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <div className="text-xl flex-shrink-0">{categoryEmojis[expense.categoria] || '📦'}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <h3 className={`font-semibold truncate ${expense.isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                          {expense.descripcion}
+                        </h3>
+                        {!expense.isActive && (
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full flex-shrink-0">
+                            Pausado
+                          </span>
+                        )}
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        categoryColors[expense.categoria] || 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {categoryNames[expense.categoria] || 'Otros'}
-                      </span>
+                      <div className="flex items-center space-x-2 text-sm text-gray-500 mt-0.5">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          categoryColors[expense.categoria] || 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {categoryNames[expense.categoria] || 'Otros'}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          Día {expense.fechaVencimiento}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-3">
-                  <div className="text-right">
-                    {(() => {
-                      const payment = getPaymentForExpense(expense.id)
-                      if (payment) {
-                        return (
-                          <>
-                            <p className={`text-lg font-bold ${expense.isActive ? 'text-green-600' : 'text-gray-500'}`}>
-                              ${payment.monto.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
-                            </p>
-                            <p className="text-xs text-green-600 font-medium">✓ Pagado</p>
-                          </>
-                        )
-                      } else {
-                        return (
-                          <>
-                            <p className="text-lg font-bold text-orange-600">Pendiente</p>
-                            <p className="text-xs text-gray-500">Sin pagar</p>
-                          </>
-                        )
-                      }
-                    })()}
                   </div>
                   
-                  <div className="flex items-center space-x-1">
+                  {/* Estado de pago y botones - Mobile optimized */}
+                  <div className="flex flex-col items-end space-y-1 flex-shrink-0 ml-2">
                     {(() => {
                       const payment = getPaymentForExpense(expense.id)
                       if (payment) {
                         return (
-                          <button
-                            onClick={() => handleMarkAsPending(expense)}
-                            className="p-2 hover:bg-orange-50 rounded-full transition-colors btn-touch"
-                            title="Marcar como pendiente"
-                          >
-                            <ClockIcon className="h-4 w-4 text-orange-600" />
-                          </button>
+                          <>
+                            <div className="text-right">
+                              <p className={`text-sm font-bold ${expense.isActive ? 'text-green-600' : 'text-gray-500'}`}>
+                                ${payment.monto.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                              </p>
+                              <p className="text-xs text-green-600 font-medium">✓ Pagado</p>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <div className="relative">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenMenuId(openMenuId === expense.id ? null : expense.id)
+                                  }}
+                                  className="p-1.5 hover:bg-gray-100 rounded-full transition-colors btn-touch"
+                                >
+                                  <EllipsisVerticalIcon className="h-4 w-4 text-gray-600" />
+                                </button>
+                                
+                                {/* Dropdown menu */}
+                                {openMenuId === expense.id && (
+                                  <div 
+                                    className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[130px]"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <button
+                                      onClick={() => {
+                                        handleMarkAsPending(expense)
+                                        setOpenMenuId(null)
+                                      }}
+                                      className="w-full px-3 py-1.5 text-left text-xs hover:bg-orange-50 text-orange-600 flex items-center space-x-2"
+                                    >
+                                      <ClockIcon className="h-3 w-3" />
+                                      <span>Marcar Pendiente</span>
+                                    </button>
+                                    
+                                    <button
+                                      onClick={() => {
+                                        setEditingExpense(expense)
+                                        setOpenMenuId(null)
+                                      }}
+                                      className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center space-x-2"
+                                    >
+                                      <PencilIcon className="h-3 w-3 text-blue-600" />
+                                      <span>Editar</span>
+                                    </button>
+                                    
+                                    <button
+                                      onClick={() => {
+                                        handleToggleActive(expense)
+                                        setOpenMenuId(null)
+                                      }}
+                                      className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center space-x-2"
+                                    >
+                                      {expense.isActive ? (
+                                        <>
+                                          <EyeSlashIcon className="h-3 w-3 text-gray-600" />
+                                          <span>Pausar</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <EyeIcon className="h-3 w-3 text-gray-600" />
+                                          <span>Activar</span>
+                                        </>
+                                      )}
+                                    </button>
+                                    
+                                    <button
+                                      onClick={() => {
+                                        handleDelete(expense)
+                                        setOpenMenuId(null)
+                                      }}
+                                      className="w-full px-3 py-1.5 text-left text-xs hover:bg-red-50 text-red-600 flex items-center space-x-2 border-t border-gray-100"
+                                    >
+                                      <TrashIcon className="h-3 w-3" />
+                                      <span>Eliminar</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </>
                         )
                       } else {
                         return (
-                          <button
-                            onClick={() => setPayingExpense(expense)}
-                            className="p-2 hover:bg-green-50 rounded-full transition-colors btn-touch"
-                            title="Marcar como pagado"
-                          >
-                            <CheckIcon className="h-4 w-4 text-green-600" />
-                          </button>
+                          <>
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-orange-600">Pendiente</p>
+                              <p className="text-xs text-gray-500">Sin pagar</p>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <button
+                                onClick={() => setPayingExpense(expense)}
+                                className="flex items-center space-x-1 px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors btn-touch"
+                              >
+                                <CheckIcon className="h-3 w-3" />
+                                <span>Pagar</span>
+                              </button>
+                              <div className="relative">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenMenuId(openMenuId === expense.id ? null : expense.id)
+                                  }}
+                                  className="p-1.5 hover:bg-gray-100 rounded-full transition-colors btn-touch"
+                                >
+                                  <EllipsisVerticalIcon className="h-4 w-4 text-gray-600" />
+                                </button>
+                                
+                                {/* Dropdown menu */}
+                                {openMenuId === expense.id && (
+                                  <div 
+                                    className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[130px]"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <button
+                                      onClick={() => {
+                                        setEditingExpense(expense)
+                                        setOpenMenuId(null)
+                                      }}
+                                      className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center space-x-2"
+                                    >
+                                      <PencilIcon className="h-3 w-3 text-blue-600" />
+                                      <span>Editar</span>
+                                    </button>
+                                    
+                                    <button
+                                      onClick={() => {
+                                        handleToggleActive(expense)
+                                        setOpenMenuId(null)
+                                      }}
+                                      className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 flex items-center space-x-2"
+                                    >
+                                      {expense.isActive ? (
+                                        <>
+                                          <EyeSlashIcon className="h-3 w-3 text-gray-600" />
+                                          <span>Pausar</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <EyeIcon className="h-3 w-3 text-gray-600" />
+                                          <span>Activar</span>
+                                        </>
+                                      )}
+                                    </button>
+                                    
+                                    <button
+                                      onClick={() => {
+                                        handleDelete(expense)
+                                        setOpenMenuId(null)
+                                      }}
+                                      className="w-full px-3 py-1.5 text-left text-xs hover:bg-red-50 text-red-600 flex items-center space-x-2 border-t border-gray-100"
+                                    >
+                                      <TrashIcon className="h-3 w-3" />
+                                      <span>Eliminar</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </>
                         )
                       }
                     })()}
-                    
-                    <button
-                      onClick={() => setEditingExpense(expense)}
-                      className="p-2 hover:bg-blue-50 rounded-full transition-colors btn-touch"
-                      title="Editar gasto"
-                    >
-                      <PencilIcon className="h-4 w-4 text-blue-600" />
-                    </button>
-                    
-                    <button
-                      onClick={() => handleToggleActive(expense)}
-                      className="p-2 hover:bg-gray-100 rounded-full transition-colors btn-touch"
-                      title={expense.isActive ? 'Pausar gasto' : 'Activar gasto'}
-                    >
-                      {expense.isActive ? (
-                        <EyeIcon className="h-4 w-4 text-gray-600" />
-                      ) : (
-                        <EyeSlashIcon className="h-4 w-4 text-gray-400" />
-                      )}
-                    </button>
-                    
-                    <button
-                      onClick={() => handleDelete(expense)}
-                      className="p-2 hover:bg-red-50 rounded-full transition-colors btn-touch"
-                      title="Eliminar gasto"
-                    >
-                      <TrashIcon className="h-4 w-4 text-red-500" />
-                    </button>
                   </div>
                 </div>
               </div>

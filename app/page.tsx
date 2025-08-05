@@ -62,7 +62,10 @@ function MainApp() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <ExpenseList refreshKey={refreshKey} />
+            <ExpenseList 
+              refreshKey={refreshKey} 
+              onAddClick={() => setShowExpenseForm(true)} 
+            />
           </motion.div>
         )}
 
