@@ -14,6 +14,12 @@ import AuthPage from '@/app/auth/page'
 function MainApp() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [showExpenseForm, setShowExpenseForm] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const handleExpenseAdded = () => {
+    setRefreshKey(prev => prev + 1) // Forzar refresh de componentes
+    setShowExpenseForm(false)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -26,7 +32,7 @@ function MainApp() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <DashboardStats />
+            <DashboardStats refreshKey={refreshKey} />
             
             {/* Botón flotante para agregar gasto */}
             <motion.button
@@ -45,7 +51,10 @@ function MainApp() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <ExpenseList />
+            <ExpenseList 
+              refreshKey={refreshKey}
+              onAddClick={() => setShowExpenseForm(true)} 
+            />
           </motion.div>
         )}
 
@@ -91,7 +100,10 @@ function MainApp() {
 
       {/* Formulario modal para agregar gastos */}
       {showExpenseForm && (
-        <ExpenseForm onClose={() => setShowExpenseForm(false)} />
+        <ExpenseForm 
+          onClose={() => setShowExpenseForm(false)} 
+          onExpenseAdded={handleExpenseAdded}
+        />
       )}
 
       <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
